@@ -1,4 +1,4 @@
-name: Self-hosted runner check
+name: GitHub-hosted runner check
 
 on:
   workflow_dispatch:
@@ -8,7 +8,10 @@ permissions:
 
 jobs:
   runner-check:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     steps:
-      - name: Show runner platform
-        run: uname -a
+      - uses: actions/checkout@v4
+      - name: Show runner environment
+        run: |
+          uname -a
+          dotnet --info
