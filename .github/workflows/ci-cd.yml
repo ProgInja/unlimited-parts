@@ -27,6 +27,18 @@ jobs:
         run: dotnet build src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-restore
       - name: Test
         run: dotnet test src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-build --no-restore
+      - name: Smoke test
+        run: |
+          dotnet run --project src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-build --urls http://127.0.0.1:5000 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --silent --fail http://127.0.0.1:5000/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
       - name: Publish
         run: dotnet publish src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-restore --output ./publish
       - uses: actions/upload-artifact@v4
