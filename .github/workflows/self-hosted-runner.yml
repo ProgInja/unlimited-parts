@@ -1,0 +1,14 @@
+name: Self-hosted runner check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runner-check:
+    runs-on: self-hosted
+    steps:
+      - name: Show runner platform
+        run: uname -a
