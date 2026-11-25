@@ -1,0 +1,52 @@
+name: CI and Azure deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy to Azure App Service
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore
+        run: dotnet restore src/UnlimitedParts.Web/UnlimitedParts.Web.csproj
+      - name: Build
+        run: dotnet build src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-restore
+      - name: Test
+        run: dotnet test src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-build --no-restore
+      - name: Publish
+        run: dotnet publish src/UnlimitedParts.Web/UnlimitedParts.Web.csproj --configuration Release --no-restore --output ./publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unlimited-parts-web
+          path: ./publish
+          retention-days: 7
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: unlimited-parts-web
+          path: ./publish
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
